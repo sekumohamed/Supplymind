@@ -224,20 +224,20 @@ sequenceDiagram
 supplymind/
 ├── app/
 │   ├── cap/
-│   │   └── provider.py          # CROO WebSocket listener + order handler
+│   │   └── provider.py          
 │   ├── intelligence/
-│   │   ├── data_ingestion.py    # Tavily + NewsAPI fetchers
-│   │   ├── embedder.py          # FAISS embedding + reranking
-│   │   ├── synthesizer.py       # Groq LLaMA synthesis
-│   │   └── pipeline.py          # Main orchestration pipeline
+│   │   ├── data_ingestion.py    
+│   │   ├── embedder.py          
+│   │   ├── synthesizer.py       
+│   │   └── pipeline.py          
 │   ├── models/
-│   │   ├── order.py             # SQLAlchemy Order model
-│   │   └── cache.py             # Query cache model
-│   ├── config.py                # Pydantic settings
-│   ├── database.py              # Async SQLAlchemy engine
-│   └── main.py                  # FastAPI app + lifespan
+│   │   ├── order.py             
+│   │   └── cache.py             
+│   ├── config.py                
+│   ├── database.py              
+│   └── main.py                  
 ├── orchestrator/
-│   └── orchestrator.py          # MarketOrchestrator (A2A demo)
+│   └── orchestrator.py          
 ├── tests/
 │   ├── unit/
 │   └── integration/
