@@ -1,6 +1,5 @@
 ---
 title: SupplyMind
-emoji: 🏭
 colorFrom: blue
 colorTo: green
 sdk: docker
@@ -318,20 +317,6 @@ python -m orchestrator.orchestrator --query "AI chip market risk 2025"
 
 ---
 
-## Hackathon Tracks
-
-- **Research & Intelligence** — paid research with verifiable sources
-- **Open A2A Agents** — proves agent-to-agent composability
-
-## Why SupplyMind Wins
-
-1. **Real domain pain** — supply chain AI is a proven $8.67B market
-2. **True A2A** — MarketOrchestrator hires SupplyMind autonomously
-3. **Dual-track** — qualifies for both Research & Intelligence and Open A2A
-4. **Production quality** — deployed, tested, documented
-5. **Commercial viability** — $2 USDC vs $300/hr analyst — obvious ROI
-
----
 
 ## License
 
