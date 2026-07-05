@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SupplyMind — Live Risk Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0A0E13;
+    --panel: #10151C;
+    --panel-raised: #141B24;
+    --line: #232D38;
+    --text: #E7ECF2;
+    --text-dim: #7C8A99;
+    --amber: #F5A623;
+    --amber-dim: #6B4E1E;
+    --teal: #45D6C4;
+    --red: #FF5C5C;
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Space Grotesk', sans-serif;
+    --body: 'Inter', sans-serif;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-position: -1px -1px;
+    background-color: var(--bg);
+  }
+  body::before{
+    content:"";
+    position: fixed; inset:0;
+    background: radial-gradient(ellipse at top left, rgba(69,214,196,0.06), transparent 50%),
+                radial-gradient(ellipse at bottom right, rgba(245,166,35,0.05), transparent 50%);
+    pointer-events: none;
+  }
+  .wrap{ max-width: 1180px; margin: 0 auto; padding: 28px 24px 60px; position: relative; }
+
+  /* Header manifest bar */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    padding: 16px 22px;
+    margin-bottom: 22px;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand .mark{
+    width: 34px; height: 34px;
+    border: 1.5px solid var(--teal);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--mono); font-size: 13px; color: var(--teal);
+    position: relative;
+  }
+  .brand .mark::after{
+    content:""; position:absolute; inset: -5px;
+    border: 1px solid rgba(69,214,196,0.25);
+  }
+  .brand h1{ font-family: var(--display); font-size: 20px; font-weight: 700; letter-spacing: 0.02em; }
+  .brand .sub{ font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+  .status{ display:flex; align-items:center; gap: 22px; font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+  .status .dot-row{ display:flex; align-items:center; gap:7px; }
+  .dot{ width:7px; height:7px; border-radius:50%; background: var(--teal); box-shadow: 0 0 8px var(--teal); }
+  .clock{ color: var(--text); }
+
+  /* Ticker */
+  .ticker{
+    border: 1px solid var(--line);
+    background: var(--panel);
+    margin-bottom: 22px;
+    height: 34px;
+    display:flex; align-items:center;
+  }
+  .ticker .label{
+    background: var(--amber); color: #1A1204; font-family: var(--mono); font-weight:700;
+    font-size: 10.5px; letter-spacing: 0.08em; padding: 0 14px; height:100%; display:flex; align-items:center; flex-shrink:0;
+  }
+  .ticker-viewport{ flex:1; overflow:hidden; position:relative; height:100%; }
+  .ticker-track{ display:flex; align-items:center; gap:36px; padding-left: 20px; position:absolute; top:0; left:0; height:100%; white-space:nowrap; animation: scroll 22s linear infinite; }
+  .ticker span{ font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+  .ticker span b{ color: var(--text); font-weight:500; }
+  @keyframes scroll{ from{ transform: translateX(0);} to{ transform: translateX(-50%);} }
+
+  /* Main grid */
+  .grid{ display:grid; grid-template-columns: 380px 1fr; gap: 20px; }
+  @media (max-width: 880px){ .grid{ grid-template-columns: 1fr; } }
+
+  .panel{ border: 1px solid var(--line); background: var(--panel); padding: 22px; }
+  .panel-title{
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-dim); margin-bottom: 16px; display:flex; align-items:center; gap:8px;
+  }
+  .panel-title::before{ content:""; width:3px; height:12px; background: var(--teal); display:inline-block; }
+
+  label{ display:block; font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+  textarea, select, input{
+    width:100%; background: var(--panel-raised); border: 1px solid var(--line); color: var(--text);
+    padding: 12px 14px; font-family: var(--body); font-size: 14px; margin-bottom: 16px; resize: vertical;
+  }
+  textarea:focus, select:focus, input:focus{ outline:none; border-color: var(--teal); }
+  textarea{ min-height: 84px; }
+  select{ cursor: pointer; }
+  select option{ background: var(--panel-raised); color: var(--text); }
+
+  .endpoint-row{ display:flex; gap:8px; }
+  .endpoint-row input{ flex:1; font-family: var(--mono); font-size: 12px; }
+
+  button.run{
+    width:100%; background: var(--teal); color: #06231F; border:none; padding: 13px;
+    font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: 0.03em;
+    cursor:pointer; transition: transform 0.1s ease, background 0.15s ease;
+  }
+  button.run:hover{ background: #5EE8D6; }
+  button.run:active{ transform: scale(0.98); }
+  button.run:disabled{ background: var(--line); color: var(--text-dim); cursor: wait; }
+
+  .hint{ font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); margin-top: 10px; line-height: 1.6; }
+
+  /* Result area */
+  .result-empty{ display:flex; flex-direction:column; align-items:center; justify-content:center; height: 100%; min-height: 320px; color: var(--text-dim); text-align:center; }
+  .result-empty .glyph{ font-family: var(--mono); font-size: 34px; color: var(--line); margin-bottom: 14px; }
+  .result-empty p{ font-family: var(--mono); font-size: 12px; max-width: 280px; line-height:1.6; }
+
+  .risk-row{ display:flex; gap: 20px; margin-bottom: 20px; }
+  .gauge-box{ flex-shrink:0; width: 140px; text-align:center; }
+  .gauge{ position:relative; width:140px; height:140px; }
+  .gauge svg{ transform: rotate(-90deg); }
+  .gauge-label{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .gauge-label .val{ font-family: var(--display); font-size: 26px; font-weight:700; }
+  .gauge-label .lvl{ font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform:uppercase; margin-top:2px; }
+
+  .summary-box{ flex:1; }
+  .summary-box h3{ font-family: var(--display); font-size: 14px; margin-bottom: 8px; letter-spacing:0.02em; }
+  .summary-box p{ font-size: 13.5px; line-height: 1.65; color: #C6D0DA; }
+
+  .subsection{ border-top: 1px solid var(--line); padding-top: 16px; margin-top: 16px; }
+  .subsection h4{ font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 10px; }
+  .chip-list{ display:flex; flex-wrap: wrap; gap: 8px; }
+  .chip{ font-family: var(--mono); font-size: 11.5px; border: 1px solid var(--line); background: var(--panel-raised); padding: 6px 11px; color: var(--teal); }
+  .tariff-text{ font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+
+  /* Trend sparkline */
+  .trend-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px; }
+  .trend-row .n{ font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); }
+  svg.spark{ width:100%; height: 60px; display:block; }
+  .history-list{ font-family: var(--mono); font-size: 11px; color: var(--text-dim); display:flex; flex-direction:column; gap:6px; margin-top: 10px; max-height: 90px; overflow-y:auto; }
+  .history-list div{ display:flex; justify-content:space-between; border-bottom: 1px dashed var(--line); padding-bottom:4px; }
+
+  footer{ margin-top: 26px; text-align:center; font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); }
+  footer b{ color: var(--teal); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="mark">SM</div>
+      <div>
+        <h1>SupplyMind</h1>
+        <div class="sub">Real-Time Supply Chain Intelligence — CROO Agent</div>
+      </div>
+    </div>
+    <div class="status">
+      <div class="dot-row"><span class="dot"></span> LIVE</div>
+      <div class="clock" id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <div class="ticker">
+    <div class="label">SIGNAL FEED</div>
+    <div class="ticker-viewport">
+      <div class="ticker-track" id="tickerTrack">
+        <span>Awaiting first query <b>—</b> run analysis to populate live signal feed</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <div class="panel">
+      <div class="panel-title">Query Console</div>
+      <label>Supply Chain Query</label>
+      <textarea id="queryInput" placeholder="e.g. automotive supply chain risk 2025">semiconductor supply chain risk Taiwan 2025</textarea>
+
+      <label>Analysis Depth</label>
+      <select id="depthInput">
+        <option value="standard" selected>Standard</option>
+        <option value="deep">Deep</option>
+      </select>
+
+      <label>Endpoint</label>
+      <div class="endpoint-row">
+        <input id="endpointInput" value="https://sekumohamed-supplymind.hf.space/analyze" />
+      </div>
+
+      <button class="run" id="runBtn">Run Analysis →</button>
+    </div>
+
+    <div class="panel" id="resultPanel">
+      <div class="panel-title">Risk Assessment</div>
+      <div class="result-empty" id="emptyState">
+        <div class="glyph">◎</div>
+        <p>No analysis run yet. Enter a query and press Run Analysis to generate a live risk readout.</p>
+      </div>
+      <div id="resultContent" style="display:none;">
+        <div class="risk-row">
+          <div class="gauge-box">
+            <div class="gauge">
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <circle cx="70" cy="70" r="58" fill="none" stroke="#232D38" stroke-width="10"/>
+                <circle id="gaugeArc" cx="70" cy="70" r="58" fill="none" stroke="var(--amber)" stroke-width="10"
+                        stroke-dasharray="364" stroke-dashoffset="364" stroke-linecap="butt"/>
+              </svg>
+              <div class="gauge-label">
+                <div class="val" id="riskScoreVal">0.0</div>
+                <div class="lvl" id="riskLevelVal">—</div>
+              </div>
+            </div>
+          </div>
+          <div class="summary-box">
+            <h3>Executive Summary</h3>
+            <p id="summaryText">—</p>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h4>Disruption Signals</h4>
+          <div class="chip-list" id="signalsList"></div>
+        </div>
+
+        <div class="subsection">
+          <h4>Tariff Exposure</h4>
+          <p class="tariff-text" id="tariffText">—</p>
+        </div>
+
+        <div class="subsection">
+          <h4>Risk Trend — This Session</h4>
+          <div class="trend-row"><span class="n" id="trendCount">0 queries logged</span></div>
+          <svg class="spark" id="sparkSvg" viewBox="0 0 400 60" preserveAspectRatio="none"></svg>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>SupplyMind — Infrastructure for the agent economy. <b>$2 USDC / query</b> vs $300/hr analyst.</footer>
+</div>
+
+<script>
+function tick(){
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12:false });
+}
+tick(); setInterval(tick, 1000);
+
+const history = [];
+
+function levelColor(level){
+  if(level === 'HIGH') return '#FF5C5C';
+  if(level === 'MEDIUM') return '#F5A623';
+  return '#45D6C4';
+}
+
+function updateTicker(query, level, score){
+  const track = document.getElementById('tickerTrack');
+  const entry = `<span><b>${level}</b> risk · ${score.toFixed(2)} · "${query}"</span>`;
+  track.innerHTML = (track.innerHTML.includes('Awaiting') ? '' : track.innerHTML) + entry + entry;
+}
+
+function drawGauge(score){
+  const circumference = 364;
+  const offset = circumference - (score * circumference);
+  const arc = document.getElementById('gaugeArc');
+  arc.style.stroke = levelColor(score > 0.66 ? 'HIGH' : score > 0.33 ? 'MEDIUM' : 'LOW');
+  arc.style.strokeDashoffset = offset;
+}
+
+function drawSpark(){
+  const svg = document.getElementById('sparkSvg');
+  if(history.length < 2){ svg.innerHTML = ''; return; }
+  const w = 400, h = 60, pad = 6;
+  const max = 1, min = 0;
+  const step = (w - pad*2) / (history.length - 1);
+  const pts = history.map((h, i) => {
+    const x = pad + i*step;
+    const y = h - pad*2 + pad - (history[i] - min) / (max - min) * (h - pad*2);
+    return `${x},${(60 - pad) - (history[i]/max)*(60 - pad*2)}`;
+  }).join(' ');
+  svg.innerHTML = `<polyline points="${pts}" fill="none" stroke="#45D6C4" stroke-width="2"/>` +
+    history.map((v,i)=>`<circle cx="${pad+i*step}" cy="${(60-pad)-(v/max)*(60-pad*2)}" r="3" fill="#F5A623"/>`).join('');
+}
+
+function renderResult(data, query){
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('resultContent').style.display = 'block';
+
+  const score = data.risk_score ?? 0;
+  const level = data.risk_level ?? '—';
+  document.getElementById('riskScoreVal').textContent = score.toFixed(2);
+  document.getElementById('riskLevelVal').textContent = level;
+  document.getElementById('riskLevelVal').style.color = levelColor(level);
+  drawGauge(score);
+
+  document.getElementById('summaryText').textContent = data.executive_summary ?? 'No summary returned.';
+
+  const signalsList = document.getElementById('signalsList');
+  signalsList.innerHTML = '';
+  (data.disruption_signals ?? []).forEach(s => {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    if (typeof s === 'string') {
+      chip.textContent = s;
+    } else {
+      const sev = (s.severity || '').toUpperCase();
+      const sevColor = sev === 'HIGH' ? '#FF5C5C' : sev === 'MEDIUM' ? '#F5A623' : '#45D6C4';
+      chip.style.borderColor = sevColor;
+      chip.style.color = sevColor;
+      chip.innerHTML = `<b>${s.source ?? 'Unknown source'}</b>${sev ? ' · ' + sev : ''}<br><span style="color:var(--text-dim); font-weight:400;">${s.signal ?? ''}</span>`;
+      chip.style.whiteSpace = 'normal';
+      chip.style.maxWidth = '100%';
+      chip.style.lineHeight = '1.5';
+    }
+    signalsList.appendChild(chip);
+  });
+
+  const tariff = data.tariff_exposure;
+  const tariffEl = document.getElementById('tariffText');
+  if (typeof tariff === 'string' || tariff == null) {
+    tariffEl.textContent = tariff ?? 'No tariff data returned.';
+  } else if (typeof tariff === 'object') {
+    tariffEl.innerHTML = Object.entries(tariff).map(([k, v]) =>
+      `<div style="margin-bottom:8px;"><b style="color:var(--text);text-transform:capitalize;">${k.replace(/_/g,' ')}:</b> ${v}</div>`
+    ).join('');
+  }
+
+  history.push(score);
+  document.getElementById('trendCount').textContent = `${history.length} ${history.length === 1 ? 'query' : 'queries'} logged`;
+  drawSpark();
+
+  const hl = document.getElementById('historyList');
+  const row = document.createElement('div');
+  row.innerHTML = `<span>${new Date().toLocaleTimeString('en-US',{hour12:false})} — ${query.slice(0,40)}</span><span style="color:${levelColor(level)}">${level} ${score.toFixed(2)}</span>`;
+  hl.prepend(row);
+
+  updateTicker(query, level, score);
+}
+
+async function runAnalysis(){
+  const btn = document.getElementById('runBtn');
+  const query = document.getElementById('queryInput').value.trim();
+  const depth = document.getElementById('depthInput').value;
+  const endpoint = document.getElementById('endpointInput').value.trim();
+  if(!query) return;
+
+  btn.disabled = true; btn.textContent = 'Analyzing…';
+
+  try{
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, depth })
+    });
+    if(!res.ok) throw new Error('Bad response ' + res.status);
+    const data = await res.json();
+    renderResult(data, query);
+  }catch(err){
+    console.warn('Live call failed, using demo fallback:', err);
+    renderResult({
+      risk_level: 'HIGH',
+      risk_score: 0.6,
+      executive_summary: 'Demo fallback: live endpoint unreachable from this origin (check CORS). Sample response shown for layout preview — connect a real query to replace this.',
+      disruption_signals: ['RapidRatings', 'AMS/ABB Automotive', 'Automotive Logistics'],
+      tariff_exposure: 'Potential tariffs on automotive components under review.'
+    }, query);
+  }finally{
+    btn.disabled = false; btn.textContent = 'Run Analysis →';
+  }
+}
+
+document.getElementById('runBtn').addEventListener('click', runAnalysis);
+document.getElementById('queryInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter' && e.ctrlKey) runAnalysis();
+});
+</script>
+</body>
+</html>

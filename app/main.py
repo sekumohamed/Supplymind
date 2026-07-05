@@ -6,7 +6,8 @@ from pydantic import BaseModel
 from app.database import init_db
 from app.intelligence.pipeline import run_pipeline
 from app.cap.provider import run_provider
-
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,6 +30,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(                                  
+    CORSMiddleware,                                   
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class QueryRequest(BaseModel):
     query: str
@@ -50,11 +57,12 @@ async def analyze(req: QueryRequest):
     return report
 
 
-@app.get("/")
-def root():
+@app.get("/info")
+def info():
     return {
         "name": "SupplyMind",
         "description": "A2A-callable supply chain intelligence agent on CROO",
         "docs": "/docs",
         "health": "/health",
     }
+app.mount("/", StaticFiles(directory="app/static", html=True), name="static")
