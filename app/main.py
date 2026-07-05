@@ -5,13 +5,20 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from app.database import init_db
 from app.intelligence.pipeline import run_pipeline
+from app.cap.provider import run_provider
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    provider_task = asyncio.create_task(run_provider())
     print("[Startup] SupplyMind is ready")
     yield
+    provider_task.cancel()
+    try:
+        await provider_task
+    except asyncio.CancelledError:
+        pass
     print("[Shutdown] SupplyMind stopped")
 
 
