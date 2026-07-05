@@ -221,7 +221,8 @@ sequenceDiagram
 
 ## Project Structure
 
-'''supplymind/
+```
+supplymind/
 ├── app/
 │   ├── cap/
 │   │   └── provider.py          # CROO WebSocket listener + order handler
@@ -244,8 +245,8 @@ sequenceDiagram
 ├── Dockerfile
 ├── requirements.txt
 ├── .env.example
-└── README.md'''
-
+└── README.md
+```
 ---
 
 ## Local Setup (10 minutes)
