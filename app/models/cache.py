@@ -1,9 +1,7 @@
-# app/models/cache.py
 from sqlalchemy import Column, String, DateTime
 from sqlalchemy.dialects.sqlite import JSON
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from app.database import Base
-
 
 class QueryCache(Base):
     __tablename__ = "query_cache"
@@ -11,8 +9,8 @@ class QueryCache(Base):
     id = Column(String, primary_key=True)
     query_hash = Column(String, unique=True, nullable=False)
     result_json = Column(JSON, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.utcnow())
     expires_at = Column(
         DateTime,
-        default=lambda: datetime.now(timezone.utc) + timedelta(minutes=30)
+        default=lambda: datetime.utcnow() + timedelta(minutes=30)
     )

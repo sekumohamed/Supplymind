@@ -147,6 +147,15 @@
   .chip{ font-family: var(--mono); font-size: 11.5px; border: 1px solid var(--line); background: var(--panel-raised); padding: 6px 11px; color: var(--teal); }
   .tariff-text{ font-size: 13px; color: var(--text-dim); line-height: 1.6; }
 
+  .category-row{ margin-bottom: 14px; }
+  .category-row:last-child{ margin-bottom: 0; }
+  .category-label{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 5px; }
+  .category-name{ font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text); }
+  .category-score{ font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+  .category-track{ height: 6px; background: var(--line); position: relative; overflow: hidden; }
+  .category-fill{ height: 100%; transition: width 0.4s ease; }
+  .category-rationale{ font-size: 12px; color: var(--text-dim); margin-top: 5px; line-height: 1.5; }
+
   /* Trend sparkline */
   .trend-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px; }
   .trend-row .n{ font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); }
@@ -156,6 +165,13 @@
 
   footer{ margin-top: 26px; text-align:center; font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); }
   footer b{ color: var(--teal); }
+
+  .cap-panel{ margin-top: 20px; }
+  .cap-feed{ display:flex; flex-direction:column; gap:8px; max-height: 240px; overflow-y:auto; }
+  .cap-event{ display:flex; justify-content:space-between; align-items:baseline; gap:14px; font-family: var(--mono); font-size: 11.5px; border-left: 3px solid var(--line); padding: 7px 12px; background: var(--panel-raised); }
+  .cap-event .type{ font-weight:700; text-transform:uppercase; letter-spacing:0.03em; margin-right: 8px; }
+  .cap-event .time{ color: var(--text-dim); flex-shrink:0; }
+  .cap-empty{ font-family: var(--mono); font-size: 12px; color: var(--text-dim); padding: 10px 2px; }
 </style>
 </head>
 <body>
@@ -233,6 +249,11 @@
         </div>
 
         <div class="subsection">
+          <h4>Risk Breakdown</h4>
+          <div id="categoryBreakdown"></div>
+        </div>
+
+        <div class="subsection">
           <h4>Disruption Signals</h4>
           <div class="chip-list" id="signalsList"></div>
         </div>
@@ -249,6 +270,13 @@
           <div class="history-list" id="historyList"></div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="panel cap-panel">
+    <div class="panel-title">CROO Agent Activity — Live</div>
+    <div class="cap-feed" id="capActivity">
+      <div class="cap-empty">Listening for negotiations and orders on the CROO network…</div>
     </div>
   </div>
 
@@ -310,6 +338,33 @@ function renderResult(data, query){
   drawGauge(score);
 
   document.getElementById('summaryText').textContent = data.executive_summary ?? 'No summary returned.';
+
+  const catContainer = document.getElementById('categoryBreakdown');
+  catContainer.innerHTML = '';
+  const categories = data.risk_categories ?? {};
+  const catKeys = Object.keys(categories);
+  if (catKeys.length === 0) {
+    catContainer.innerHTML = '<div style="font-family:var(--mono); font-size:11.5px; color:var(--text-dim);">No category breakdown returned for this query.</div>';
+  } else {
+    catKeys.forEach(key => {
+      const cat = categories[key] ?? {};
+      const catScore = cat.score ?? 0;
+      const color = levelColor(catScore > 0.66 ? 'HIGH' : catScore > 0.33 ? 'MEDIUM' : 'LOW');
+      const row = document.createElement('div');
+      row.className = 'category-row';
+      row.innerHTML = `
+        <div class="category-label">
+          <span class="category-name">${key.replace(/_/g, ' ')}</span>
+          <span class="category-score" style="color:${color}">${catScore.toFixed(2)}</span>
+        </div>
+        <div class="category-track">
+          <div class="category-fill" style="width:${Math.min(catScore * 100, 100)}%; background:${color};"></div>
+        </div>
+        <div class="category-rationale">${cat.rationale ?? ''}</div>
+      `;
+      catContainer.appendChild(row);
+    });
+  }
 
   const signalsList = document.getElementById('signalsList');
   signalsList.innerHTML = '';
@@ -389,6 +444,50 @@ document.getElementById('runBtn').addEventListener('click', runAnalysis);
 document.getElementById('queryInput').addEventListener('keydown', e => {
   if(e.key === 'Enter' && e.ctrlKey) runAnalysis();
 });
+
+function getBaseUrl(){
+  const ep = document.getElementById('endpointInput').value.trim();
+  return ep.replace(/\/analyze\/?$/, '');
+}
+
+function eventColor(type){
+  if(type.includes('delivered') || type.includes('accepted') || type === 'order_paid') return '#45D6C4';
+  if(type.includes('created') || type.includes('processing')) return '#F5A623';
+  if(type.includes('failed') || type.includes('error') || type.includes('rejected')) return '#FF5C5C';
+  return '#7C8A99';
+}
+
+function renderCapActivity(events){
+  const el = document.getElementById('capActivity');
+  if(!events || events.length === 0){
+    el.innerHTML = '<div class="cap-empty">Listening for negotiations and orders on the CROO network…</div>';
+    return;
+  }
+  el.innerHTML = events.map(ev => {
+    const color = eventColor(ev.event_type);
+    let time = '—';
+    try{ time = new Date(ev.timestamp + 'Z').toLocaleTimeString('en-US', { hour12:false }); }catch(e){}
+    return `<div class="cap-event" style="border-left-color:${color}">
+      <span><span class="type" style="color:${color}">${ev.event_type.replace(/_/g,' ')}</span>${ev.detail}</span>
+      <span class="time">${time}</span>
+    </div>`;
+  }).join('');
+}
+
+async function pollCapActivity(){
+  try{
+    const base = getBaseUrl();
+    const res = await fetch(`${base}/cap/activity?limit=15`);
+    if(!res.ok) return;
+    const events = await res.json();
+    renderCapActivity(events);
+  }catch(err){
+    // CAP endpoint unreachable — leave existing feed state, fail silently
+  }
+}
+
+pollCapActivity();
+setInterval(pollCapActivity, 5000);
 </script>
 </body>
 </html>
