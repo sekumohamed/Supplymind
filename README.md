@@ -92,8 +92,9 @@ CAPVault → release USDC → SupplyMind wallet
 ---
 
 ## System Architecture
+'''
 ┌─────────────────────────────────────────────────────────┐
-│                    EXTERNAL CALLERS                      │
+│                    EXTERNAL CALLERS                     │
 │  Human User        Orchestrator Agent    Other Agents   │
 └──────────────────────────┬──────────────────────────────┘
 │ CAP (CROO Agent Protocol)
@@ -120,10 +121,10 @@ CAPVault → release USDC → SupplyMind wallet
 └─────────────────────────────────────────────────────────┘
 │
 ▼
-USDC Settlement via CAPVault
+USDC Settlement via CAPVault '''
 
 ### A2A Composability (MarketOrchestrator)
-User Query: "Semiconductor supply chain risk 2025"
+'''User Query: "Semiconductor supply chain risk 2025"
 │
 ▼
 MarketOrchestrator Agent
@@ -138,7 +139,7 @@ MarketOrchestrator Agent
 └──► Risk Report 3
 │
 ▼
-Merged Intelligence Report
+Merged Intelligence Report'''
 
 ---
 
@@ -234,7 +235,8 @@ Merged Intelligence Report
 ---
 
 ## Project Structure
-supplymind/
+
+'''supplymind/
 ├── app/
 │   ├── cap/
 │   │   └── provider.py          # CROO WebSocket listener + order handler
@@ -257,7 +259,7 @@ supplymind/
 ├── Dockerfile
 ├── requirements.txt
 ├── .env.example
-└── README.md
+└── README.md'''
 
 ---
 
