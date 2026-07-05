@@ -91,57 +91,42 @@ CAPVault → release USDC → SupplyMind wallet
 
 ---
 
-## System Architecture
-'''
-┌─────────────────────────────────────────────────────────┐
-│                    EXTERNAL CALLERS                     │
-│  Human User        Orchestrator Agent    Other Agents   │
-└──────────────────────────┬──────────────────────────────┘
-│ CAP (CROO Agent Protocol)
-▼
-┌─────────────────────────────────────────────────────────┐
-│                  SUPPLYMIND CORE                        │
-│                                                         │
-│  ┌─────────────┐    ┌──────────────────────────────┐    │
-│  │ CAP Provider │    │     Intelligence Engine      │   │
-│  │  (WebSocket) │───►│                              │   │
-│  └─────────────┘     │  1. Data Ingestion           │   │
-│                      │     - Tavily Web Search      │   │
-│                      │     - NewsAPI Business News  │   │
-│                      │                              │   │
-│                      │  2. Vector Processing        │   │
-│                      │     - Text chunking          │   │
-│                      │     - FAISS embedding        │   │
-│                      │     - Cosine reranking       │   │
-│                      │                              │   │
-│                      │  3. LLM Synthesis            │   │
-│                      │     - Groq LLaMA 3.3 70B     │   │
-│                      │     - Structured JSON output │   │
-│                      └──────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
-│
-▼
-USDC Settlement via CAPVault '''
+## 🏗️ System Architecture
 
-### A2A Composability (MarketOrchestrator)
-'''User Query: "Semiconductor supply chain risk 2025"
-│
-▼
-MarketOrchestrator Agent
-│
-├──► SupplyMind: "Current state and key players..."
-│         └──► Risk Report 1
-│
-├──► SupplyMind: "Risk factors and disruption signals..."
-│         └──► Risk Report 2
-│
-└──► SupplyMind: "Alternative suppliers and mitigation..."
-└──► Risk Report 3
-│
-▼
-Merged Intelligence Report'''
+```mermaid
+flowchart TD
+    A[Human User] --> C[CAP - CROO Agent Protocol]
+    B[Orchestrator Agent] --> C
+    C --> D[SupplyMind Agent - FastAPI]
+    D --> E[Data Ingestion]
+    E --> E1[Tavily Web Search]
+    E --> E2[NewsAPI Business News]
+    E1 --> F[Vector Processing - FAISS]
+    E2 --> F
+    F --> G[Groq LLaMA 3.3 70B Synthesis]
+    G --> H[Structured JSON Report]
+    H --> I[CAP Delivery]
+    I --> J[USDC Settlement - CAPVault]
+```
 
----
+## 🔄 A2A Composability
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant O as MarketOrchestrator
+    participant S as SupplyMind
+    participant C as CROO CAP
+
+    U->>O: "Semiconductor supply chain risk 2025"
+    O->>C: negotiate_order() sub-query 1
+    C->>S: ORDER_PAID event
+    S->>C: deliver_order() report 1
+    O->>C: negotiate_order() sub-query 2
+    C->>S: ORDER_PAID event
+    S->>C: deliver_order() report 2
+    O->>U: Merged Intelligence Report
+```
 
 ## API Reference
 
