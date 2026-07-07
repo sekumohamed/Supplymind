@@ -45,10 +45,10 @@ Scoring rules for risk_categories:
 - cyber: security incidents, data breaches, infrastructure vulnerabilities in the supply chain.
 - compliance: regulatory changes, customs/trade law shifts, ESG or labor violations.
 - The top-level "risk_score" should be a reasonable overall synthesis of the category scores, not a separate independent guess.
-- Keep every "rationale" field to a maximum of 12 words. Be terse — this is a data field, not prose.
 
 Be factual. Use only information from the provided context.
-Output JSON only — no preamble, no markdown, no explanation."""
+Output JSON only — no preamble, no markdown, no explanation."
+Keep every "rationale" field to a maximum of 12 words. Be terse — this is a data field, not prose.""
 
 
 def _call_groq(query: str, context: str, sources: list[dict]) -> dict:
@@ -76,14 +76,12 @@ Produce the structured JSON supply chain intelligence report now."""
             {"role": "user", "content": user_prompt},
         ],
         temperature=0.1,
-        max_tokens=2500,
-        response_format={"type": "json_object"},
+        max_tokens=1800,
     )
 
     raw = response.choices[0].message.content.strip()
 
-    # Strip markdown fences if present (belt-and-braces; response_format
-    # should prevent this, but older SDK/model combos can still wrap it)
+    # Strip markdown fences if present
     if raw.startswith("```"):
         parts = raw.split("```")
         raw = parts[1] if len(parts) > 1 else raw
@@ -93,6 +91,7 @@ Produce the structured JSON supply chain intelligence report now."""
 
     try:
         parsed = json.loads(raw)
+        # Defensive default in case the model omits risk_categories despite instructions
         parsed.setdefault("risk_categories", {})
         return parsed
     except json.JSONDecodeError:
