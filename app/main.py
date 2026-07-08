@@ -1,6 +1,6 @@
 import asyncio
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from app.database import init_db, AsyncSessionLocal
@@ -12,7 +12,6 @@ from sqlalchemy import select, desc
 from app.models.history import QueryHistory
 from app.models.cache import QueryCache
 from app.cap.activity_log import get_events
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -61,7 +60,7 @@ async def analyze(req: QueryRequest):
         raise HTTPException(status_code=400, detail="depth must be standard or deep")
 
     query_hash = make_query_hash(req.query, req.depth)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     async with AsyncSessionLocal() as session:
         result = await session.execute(
@@ -69,7 +68,9 @@ async def analyze(req: QueryRequest):
         )
         cached = result.scalar_one_or_none()
         if cached and cached.expires_at:
-            expires = cached.expires_at.replace(tzinfo=None) if cached.expires_at.tzinfo else cached.expires_at
+            expires = cached.expires_at
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
             if expires > now:
                 print(f"[Cache] HIT for '{req.query}' ({req.depth})")
                 return cached.result_json
