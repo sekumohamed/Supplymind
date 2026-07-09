@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from app.database import init_db, AsyncSessionLocal
 from app.intelligence.pipeline import run_pipeline, make_query_hash
@@ -12,6 +12,7 @@ from sqlalchemy import select, desc
 from app.models.history import QueryHistory
 from app.models.cache import QueryCache
 from app.cap.activity_log import get_events
+from app.utils.rate_limit import enforce_rate_limit
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -53,7 +54,7 @@ def health():
 
 
 @app.post("/analyze")
-async def analyze(req: QueryRequest):
+async def analyze(req: QueryRequest, _: None = Depends(enforce_rate_limit)):
     if not req.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
     if req.depth not in ("standard", "deep"):
