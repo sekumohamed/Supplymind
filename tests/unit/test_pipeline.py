@@ -42,7 +42,6 @@ class TestRunPipelineNoDocuments:
         assert report["data_sources"] == []
         assert "processing_time_ms" in report
         assert isinstance(report["processing_time_ms"], int)
-        # note: fallback path does NOT set query_hash today - see flag below
 
 
 class TestRunPipelineHappyPath:
@@ -74,7 +73,6 @@ class TestRunPipelineHappyPath:
         ):
             report = await run_pipeline("Shanghai port congestion", depth="deep")
 
-        # pipeline should stamp these onto whatever synthesize_report returns
         assert report["risk_level"] == "HIGH"
         assert "processing_time_ms" in report
         assert isinstance(report["processing_time_ms"], int)
@@ -100,3 +98,88 @@ class TestRunPipelineHappyPath:
         mock_fetch.assert_awaited_once_with("test query", depth="standard")
         mock_embed.assert_awaited_once_with("test query", fake_documents, top_k=8)
         mock_synth.assert_awaited_once_with("test query", fake_chunks, fake_documents)
+
+
+class TestDataAvailability:
+    @pytest.mark.asyncio
+    async def test_marks_unavailable_when_no_documents(self):
+        with patch(
+            "app.intelligence.pipeline.fetch_all_sources",
+            new=AsyncMock(return_value=[]),
+        ):
+            report = await run_pipeline("some obscure query", depth="standard")
+
+        assert report["data_availability"] == "unavailable"
+
+    @pytest.mark.asyncio
+    async def test_marks_partial_when_below_threshold(self):
+        fake_documents = [{"source": "reuters", "content": "tariffs rising"}]
+        fake_chunks = [{"text": "tariffs rising", "score": 0.9}]
+        fake_report = {"risk_level": "HIGH", "risk_score": 0.8, "confidence_score": 0.5}
+
+        with patch(
+            "app.intelligence.pipeline.fetch_all_sources",
+            new=AsyncMock(return_value=fake_documents),
+        ), patch(
+            "app.intelligence.pipeline.embed_documents",
+            new=AsyncMock(return_value=fake_chunks),
+        ), patch(
+            "app.intelligence.pipeline.synthesize_report",
+            new=AsyncMock(return_value=fake_report),
+        ):
+            report = await run_pipeline("Shanghai port congestion", depth="standard")
+
+        assert report["data_availability"] == "partial"
+
+    @pytest.mark.asyncio
+    async def test_marks_full_when_at_or_above_threshold(self):
+        fake_documents = [
+            {"source": "reuters", "content": "tariffs rising"},
+            {"source": "tavily", "content": "port delays"},
+            {"source": "newsapi", "content": "shipping costs up"},
+        ]
+        fake_chunks = [{"text": "tariffs rising", "score": 0.9}]
+        fake_report = {"risk_level": "HIGH", "risk_score": 0.8, "confidence_score": 0.9}
+
+        with patch(
+            "app.intelligence.pipeline.fetch_all_sources",
+            new=AsyncMock(return_value=fake_documents),
+        ), patch(
+            "app.intelligence.pipeline.embed_documents",
+            new=AsyncMock(return_value=fake_chunks),
+        ), patch(
+            "app.intelligence.pipeline.synthesize_report",
+            new=AsyncMock(return_value=fake_report),
+        ):
+            report = await run_pipeline("Shanghai port congestion", depth="standard")
+
+        assert report["data_availability"] == "full"
+
+    @pytest.mark.asyncio
+    async def test_does_not_override_if_synthesizer_already_set_it(self):
+        fake_documents = [
+            {"source": "reuters", "content": "tariffs rising"},
+            {"source": "tavily", "content": "port delays"},
+            {"source": "newsapi", "content": "shipping costs up"},
+        ]
+        fake_chunks = [{"text": "tariffs rising", "score": 0.9}]
+        fake_report = {
+            "risk_level": "HIGH",
+            "risk_score": 0.8,
+            "confidence_score": 0.9,
+            "data_availability": "custom_value_from_synthesizer",
+        }
+
+        with patch(
+            "app.intelligence.pipeline.fetch_all_sources",
+            new=AsyncMock(return_value=fake_documents),
+        ), patch(
+            "app.intelligence.pipeline.embed_documents",
+            new=AsyncMock(return_value=fake_chunks),
+        ), patch(
+            "app.intelligence.pipeline.synthesize_report",
+            new=AsyncMock(return_value=fake_report),
+        ):
+            report = await run_pipeline("Shanghai port congestion", depth="standard")
+
+        assert report["data_availability"] == "custom_value_from_synthesizer"
