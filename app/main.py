@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from pydantic import BaseModel
 from app.database import init_db, AsyncSessionLocal
 from app.intelligence.pipeline import run_pipeline, make_query_hash
@@ -13,19 +13,24 @@ from app.models.history import QueryHistory
 from app.models.cache import QueryCache
 from app.cap.activity_log import get_events
 from app.utils.rate_limit import enforce_rate_limit
+from app.utils.logging_config import setup_logging, get_logger, request_id_ctx, new_request_id
+
+setup_logging()
+logger = get_logger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
     provider_task = asyncio.create_task(run_provider())
-    print("[Startup] SupplyMind is ready")
+    logger.info("[Startup] SupplyMind is ready")
     yield
     provider_task.cancel()
     try:
         await provider_task
     except asyncio.CancelledError:
         pass
-    print("[Shutdown] SupplyMind stopped")
+    logger.info("[Shutdown] SupplyMind stopped")
 
 
 app = FastAPI(
@@ -41,6 +46,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    incoming = request.headers.get("x-request-id")
+    rid = incoming if incoming else new_request_id()
+    token = request_id_ctx.set(rid)
+    try:
+        response = await call_next(request)
+    finally:
+        request_id_ctx.reset(token)
+    response.headers["X-Request-ID"] = rid
+    return response
 
 
 class QueryRequest(BaseModel):
@@ -73,7 +91,7 @@ async def analyze(req: QueryRequest, _: None = Depends(enforce_rate_limit)):
             if expires.tzinfo is None:
                 expires = expires.replace(tzinfo=timezone.utc)
             if expires > now:
-                print(f"[Cache] HIT for '{req.query}' ({req.depth})")
+                logger.info(f"[Cache] HIT for '{req.query}' ({req.depth})")
                 return cached.result_json
 
     report = await run_pipeline(req.query, depth=req.depth)
@@ -96,7 +114,7 @@ async def analyze(req: QueryRequest, _: None = Depends(enforce_rate_limit)):
                 ))
             await session.commit()
     except Exception as e:
-        print(f"[Cache] Failed to store: {e}")
+        logger.error(f"[Cache] Failed to store: {e}", exc_info=True)
 
     try:
         async with AsyncSessionLocal() as session:
@@ -114,7 +132,7 @@ async def analyze(req: QueryRequest, _: None = Depends(enforce_rate_limit)):
             ))
             await session.commit()
     except Exception as e:
-        print(f"[History] Failed to log query: {e}")
+        logger.error(f"[History] Failed to log query: {e}", exc_info=True)
 
     return report
 

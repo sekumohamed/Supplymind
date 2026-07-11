@@ -172,6 +172,13 @@
   .cap-event .type{ font-weight:700; text-transform:uppercase; letter-spacing:0.03em; margin-right: 8px; }
   .cap-event .time{ color: var(--text-dim); flex-shrink:0; }
   .cap-empty{ font-family: var(--mono); font-size: 12px; color: var(--text-dim); padding: 10px 2px; }
+  .action-item{ font-family: var(--mono); font-size: 12.5px; color: #C6D0DA; border-left: 2px solid var(--teal); padding: 6px 10px; background: var(--panel-raised); }
+  .supplier-card{ display:flex; justify-content:space-between; align-items:center; border: 1px solid var(--line); background: var(--panel-raised); padding: 10px 14px; margin-bottom: 8px; }
+  .supplier-card:last-child{ margin-bottom: 0; }
+  .supplier-name{ font-family: var(--display); font-size: 13.5px; font-weight: 600; }
+  .supplier-meta{ font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); margin-top: 2px; }
+  .supplier-fit{ font-family: var(--mono); font-size: 15px; font-weight: 700; }
+  .no-data-note{ font-family: var(--mono); font-size: 11.5px; color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -261,6 +268,24 @@
         <div class="subsection">
           <h4>Tariff Exposure</h4>
           <p class="tariff-text" id="tariffText">—</p>
+        </div>
+
+        <div class="subsection">
+          <h4>Confidence &amp; Data Coverage</h4>
+          <div class="chip-list">
+            <div class="chip" id="confidenceChip" style="border-color:var(--text-dim); color:var(--text-dim);">—</div>
+            <div class="chip" id="dataAvailabilityChip" style="border-color:var(--text-dim); color:var(--text-dim);">—</div>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h4>Recommended Actions</h4>
+          <div id="actionItemsList" class="chip-list" style="flex-direction:column; gap:8px;"></div>
+        </div>
+
+        <div class="subsection">
+          <h4>Alternative Suppliers</h4>
+          <div id="altSuppliersList"></div>
         </div>
 
         <div class="subsection">
@@ -394,6 +419,72 @@ function renderResult(data, query){
     tariffEl.innerHTML = Object.entries(tariff).map(([k, v]) =>
       `<div style="margin-bottom:8px;"><b style="color:var(--text);text-transform:capitalize;">${k.replace(/_/g,' ')}:</b> ${v}</div>`
     ).join('');
+  }
+
+  // Confidence + data availability
+  const confidence = data.confidence_score;
+  const confChip = document.getElementById('confidenceChip');
+  if (typeof confidence === 'number') {
+    const pct = Math.round(confidence * 100);
+    const cColor = confidence >= 0.7 ? '#45D6C4' : confidence >= 0.4 ? '#F5A623' : '#FF5C5C';
+    confChip.textContent = `Confidence: ${pct}%`;
+    confChip.style.borderColor = cColor;
+    confChip.style.color = cColor;
+  } else {
+    confChip.textContent = 'Confidence: n/a';
+    confChip.style.borderColor = 'var(--text-dim)';
+    confChip.style.color = 'var(--text-dim)';
+  }
+
+  const availability = data.data_availability;
+  const availChip = document.getElementById('dataAvailabilityChip');
+  if (availability) {
+    const aColor = availability === 'full' ? '#45D6C4' : availability === 'partial' ? '#F5A623' : '#FF5C5C';
+    availChip.textContent = `Data: ${availability}`;
+    availChip.style.borderColor = aColor;
+    availChip.style.color = aColor;
+  } else {
+    availChip.textContent = 'Data: n/a';
+    availChip.style.borderColor = 'var(--text-dim)';
+    availChip.style.color = 'var(--text-dim)';
+  }
+
+  // Recommended actions
+  const actionsList = document.getElementById('actionItemsList');
+  actionsList.innerHTML = '';
+  const actionItems = data.action_items ?? [];
+  if (actionItems.length === 0) {
+    actionsList.innerHTML = '<div class="no-data-note">No action items returned for this query.</div>';
+  } else {
+    actionItems.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'action-item';
+      el.textContent = `→ ${item}`;
+      actionsList.appendChild(el);
+    });
+  }
+
+  // Alternative suppliers
+  const altList = document.getElementById('altSuppliersList');
+  altList.innerHTML = '';
+  const altSuppliers = data.alternative_suppliers ?? [];
+  if (altSuppliers.length === 0) {
+    altList.innerHTML = '<div class="no-data-note">No alternative suppliers identified for this query.</div>';
+  } else {
+    altSuppliers.forEach(s => {
+      const fit = s.fit_score ?? 0;
+      const fitColor = fit >= 0.7 ? '#45D6C4' : fit >= 0.4 ? '#F5A623' : '#FF5C5C';
+      const card = document.createElement('div');
+      card.className = 'supplier-card';
+      card.innerHTML = `
+        <div>
+          <div class="supplier-name">${s.name ?? 'Unnamed supplier'}</div>
+          <div class="supplier-meta">${s.country ?? '—'} · Lead time: ${s.lead_time_weeks ?? '—'} wks</div>
+        </div>
+        <div class="supplier-fit" style="color:${fitColor}">${fit.toFixed(2)}</div>
+      `;
+      altList.appendChild(card);
+    });
   }
 
   history.push(score);

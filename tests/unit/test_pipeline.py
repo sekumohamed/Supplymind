@@ -42,6 +42,8 @@ class TestRunPipelineNoDocuments:
         assert report["data_sources"] == []
         assert "processing_time_ms" in report
         assert isinstance(report["processing_time_ms"], int)
+        assert report["query_hash"] == make_query_hash("some obscure query", "standard")
+    
 
 
 class TestRunPipelineHappyPath:

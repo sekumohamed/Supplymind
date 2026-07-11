@@ -3,8 +3,10 @@ import asyncio
 import httpx
 from tavily import TavilyClient
 from app.config import get_settings
+from app.utils.logging_config import get_logger
 
 settings = get_settings()
+logger = get_logger(__name__)
 
 TAVILY_TIMEOUT_SECONDS = 15
 NEWS_TIMEOUT_SECONDS = 10
@@ -13,12 +15,6 @@ RETRY_BACKOFF_SECONDS = 1.5
 
 
 async def fetch_tavily(query: str, max_results: int = 5) -> list[dict]:
-    """Fetch web search results with raw content via Tavily.
-
-    Bounded by a hard timeout and retried once on transient failure.
-    Always returns a list — never raises — so a slow/broken Tavily
-    call degrades the report instead of hanging or crashing the request.
-    """
     client = TavilyClient(api_key=settings.tavily_api_key)
 
     for attempt in range(1, MAX_RETRIES + 1):
@@ -34,27 +30,22 @@ async def fetch_tavily(query: str, max_results: int = 5) -> list[dict]:
                 timeout=TAVILY_TIMEOUT_SECONDS,
             )
             results = response.get("results", [])
-            print(f"[Tavily] Fetched {len(results)} results for: {query[:50]}")
+            logger.info(f"[Tavily] Fetched {len(results)} results for: {query[:50]}")
             return results
 
         except asyncio.TimeoutError:
-            print(f"[Tavily] Timeout after {TAVILY_TIMEOUT_SECONDS}s (attempt {attempt}/{MAX_RETRIES})")
+            logger.warning(f"[Tavily] Timeout after {TAVILY_TIMEOUT_SECONDS}s (attempt {attempt}/{MAX_RETRIES})")
         except Exception as e:
-            print(f"[Tavily] Error (attempt {attempt}/{MAX_RETRIES}): {e}")
+            logger.error(f"[Tavily] Error (attempt {attempt}/{MAX_RETRIES}): {e}", exc_info=True)
 
         if attempt < MAX_RETRIES:
             await asyncio.sleep(RETRY_BACKOFF_SECONDS * attempt)
 
-    print("[Tavily] All retries exhausted — degrading to no results")
+    logger.warning("[Tavily] All retries exhausted — degrading to no results")
     return []
 
 
 async def fetch_news(query: str, max_results: int = 5) -> list[dict]:
-    """Fetch business news via NewsAPI.
-
-    Bounded by a hard timeout and retried once on transient failure.
-    Always returns a list — never raises.
-    """
     url = "https://newsapi.org/v2/everything"
     params = {
         "q": query,
@@ -81,32 +72,24 @@ async def fetch_news(query: str, max_results: int = 5) -> list[dict]:
                 }
                 for a in articles
             ]
-            print(f"[NewsAPI] Fetched {len(results)} articles")
+            logger.info(f"[NewsAPI] Fetched {len(results)} articles")
             return results
 
         except httpx.TimeoutException:
-            print(f"[NewsAPI] Timeout after {NEWS_TIMEOUT_SECONDS}s (attempt {attempt}/{MAX_RETRIES})")
+            logger.warning(f"[NewsAPI] Timeout after {NEWS_TIMEOUT_SECONDS}s (attempt {attempt}/{MAX_RETRIES})")
         except httpx.HTTPStatusError as e:
-            print(f"[NewsAPI] HTTP error {e.response.status_code} (attempt {attempt}/{MAX_RETRIES})")
+            logger.warning(f"[NewsAPI] HTTP error {e.response.status_code} (attempt {attempt}/{MAX_RETRIES})")
         except Exception as e:
-            print(f"[NewsAPI] Error (attempt {attempt}/{MAX_RETRIES}): {e}")
+            logger.error(f"[NewsAPI] Error (attempt {attempt}/{MAX_RETRIES}): {e}", exc_info=True)
 
         if attempt < MAX_RETRIES:
             await asyncio.sleep(RETRY_BACKOFF_SECONDS * attempt)
 
-    print("[NewsAPI] All retries exhausted — degrading to no results")
+    logger.warning("[NewsAPI] All retries exhausted — degrading to no results")
     return []
 
 
 async def fetch_all_sources(query: str, depth: str = "standard") -> list[dict]:
-    """
-    Fetch from all sources in parallel.
-    depth = 'standard' (5 results) | 'deep' (10 results)
-
-    If one source fails entirely, the other can still populate the
-    report — this only returns empty if BOTH sources are unavailable,
-    which the pipeline already handles via its no-documents fallback.
-    """
     max_results = 10 if depth == "deep" else 5
 
     tavily_results, news_results = await asyncio.gather(
@@ -125,5 +108,5 @@ async def fetch_all_sources(query: str, depth: str = "standard") -> list[dict]:
     for r in news_results:
         all_results.append(r)
 
-    print(f"[DataIngestion] Total {len(all_results)} documents fetched")
+    logger.info(f"[DataIngestion] Total {len(all_results)} documents fetched")
     return all_results
