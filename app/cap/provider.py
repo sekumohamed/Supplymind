@@ -137,15 +137,15 @@ async def run_provider():
     stream = await client.connect_websocket()
     print("[CAP] ✓ SupplyMind is ONLINE — waiting for orders")
 
-def on_negotiation_created(event):
-    negotiation_id = event.negotiation_id
-    print(f"[CAP] New negotiation: {negotiation_id}")
-    asyncio.create_task(handle_negotiation(client, negotiation_id))
+    def on_negotiation_created(event):
+        negotiation_id = event.negotiation_id
+        print(f"[CAP] New negotiation: {negotiation_id}")
+        asyncio.create_task(handle_negotiation(client, negotiation_id))
 
-def on_order_paid(event):
-    order_id = event.order_id
-    print(f"[CAP] Order paid: {order_id}")
-    asyncio.create_task(handle_paid_order(client, order_id))
+    def on_order_paid(event):
+        order_id = event.order_id
+        print(f"[CAP] Order paid: {order_id}")
+        asyncio.create_task(handle_paid_order(client, order_id))
 
     stream.on(EventType.NEGOTIATION_CREATED, on_negotiation_created)
     stream.on(EventType.ORDER_PAID, on_order_paid)
