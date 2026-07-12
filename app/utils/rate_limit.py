@@ -1,4 +1,3 @@
-# app/utils/rate_limit.py
 import time
 import asyncio
 from collections import defaultdict, deque

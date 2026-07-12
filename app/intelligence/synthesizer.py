@@ -1,4 +1,3 @@
-# app/intelligence/synthesizer.py
 import json
 import asyncio
 from groq import Groq

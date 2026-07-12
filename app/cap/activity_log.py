@@ -1,4 +1,3 @@
-# app/cap/activity_log.py
 import asyncio
 from datetime import datetime
 from collections import deque

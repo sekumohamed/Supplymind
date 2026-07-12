@@ -1,4 +1,3 @@
-# tests/unit/test_pipeline.py
 import pytest
 from unittest.mock import AsyncMock, patch
 from app.intelligence.pipeline import run_pipeline, make_query_hash

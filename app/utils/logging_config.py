@@ -1,4 +1,3 @@
-# app/utils/logging_config.py
 import logging
 import sys
 import uuid

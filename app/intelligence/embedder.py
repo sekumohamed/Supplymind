@@ -1,4 +1,3 @@
-# app/intelligence/embedder.py
 import asyncio
 import numpy as np
 import faiss

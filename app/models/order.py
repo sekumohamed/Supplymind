@@ -1,4 +1,3 @@
-# app/models/order.py
 from sqlalchemy import Column, String, Float, Integer, DateTime
 from sqlalchemy.dialects.sqlite import JSON
 from datetime import datetime, timezone

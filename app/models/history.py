@@ -1,4 +1,3 @@
-# app/models/history.py
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Float, DateTime, JSON
 from app.database import Base

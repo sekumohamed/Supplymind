@@ -1,4 +1,3 @@
-# orchestrator/orchestrator.py
 import asyncio
 import json
 import argparse

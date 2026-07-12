@@ -1,4 +1,3 @@
-# tests/unit/test_rate_limit.py
 import time
 import pytest
 from unittest.mock import MagicMock
