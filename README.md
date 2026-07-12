@@ -27,7 +27,7 @@ Supply chain managers today lose millions to blind spots:
 - **Analyst bottleneck** — senior planners cost $80K+/year and can only handle a few queries/day
 - **No real-time intelligence** — existing tools (Kinaxis, Blue Yonder) cost $100K–$500K/year
 
-**SupplyMind delivers per-query intelligence at $2 USDC** — 1000x cheaper than hiring an analyst.
+**SupplyMind delivers per-query intelligence at $0.01 USDC** — 1000x cheaper than hiring an analyst.
 
 ---
 
@@ -57,7 +57,7 @@ Supply chain managers today lose millions to blind spots:
 
 ## Verified Live on CROO
 
-This isn't just an integration that compiles — it has completed a **real, end-to-end transaction** on the CROO network: a buyer submitted a query through CROO Navigator, escrow locked real USDC, SupplyMind's agent accepted the negotiation, the payment was confirmed, the full intelligence pipeline ran, and the report was delivered with an on-chain settlement receipt.
+This isn't just an integration that compiles - it has completed a **real, end-to-end transaction** on the CROO network: a buyer submitted a query through CROO Navigator, escrow locked real USDC, SupplyMind's agent accepted the negotiation, the payment was confirmed, the full intelligence pipeline ran, and the report was delivered with an on-chain settlement receipt.
 
 ```
 NEGOTIATION CREATED  → new order request received from CROO network
@@ -83,7 +83,7 @@ All three are fixed in `app/cap/provider.py` and covered by the transaction abov
 
 | Service Name | Price | SLA | Deliverable |
 |-------------|-------|-----|-------------|
-| Supply Chain Analysis | 2 USDC | 5 min | JSON Report |
+| Supply Chain Analysis | 0.01 USDC | 5 min | JSON Report |
 
 The service's Requirements schema is registered on CROO so buyers get a real input form (query + optional depth) rather than a blank checkout — this is what CROO Navigator renders when a buyer places an order.
 
@@ -150,7 +150,7 @@ flowchart TD
     I --> J[USDC Settlement - CAPVault]
 ```
 
-## 🔄 A2A Composability
+##  A2A Composability
 
 ```mermaid
 sequenceDiagram
@@ -389,17 +389,6 @@ python -m orchestrator.orchestrator --query "AI chip market risk 2025"
 
 ---
 
-## Roadmap
-
-Not yet built, noted honestly rather than overclaimed:
-
-- Scenario simulation ("what if X disruption happened" counterfactual mode)
-- Supplier network graph (multi-tier visibility)
-- Continuous background monitoring instead of only on-demand queries
-- Source credibility weighting in the synthesis step
-- Per-customer API key auth and usage metering for a full commercial tier
-
----
 
 ## License
 
