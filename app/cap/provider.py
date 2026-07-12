@@ -28,12 +28,12 @@ async def handle_negotiation(client: AgentClient, negotiation_id: str):
     )
     try:
         result = await client.accept_negotiation(negotiation_id)
-        print(f"[CAP] Accepted negotiation → order: {result.order_id}")
+        print(f"[CAP] Accepted negotiation → order: {result.order.order_id}")
         await log_event(
             "negotiation_accepted",
-            f"Accepted → order {result.order_id} created",
-            {"negotiation_id": negotiation_id, "order_id": result.order_id},
-        )
+            f"Accepted → order {result.order.order_id} created",
+            {"negotiation_id": negotiation_id, "order_id": result.order.order_id},
+)
     except APIError as e:
         print(f"[CAP] Failed to accept negotiation {negotiation_id}: {e}")
         await log_event(
