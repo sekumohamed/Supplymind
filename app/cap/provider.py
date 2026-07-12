@@ -62,8 +62,10 @@ async def handle_paid_order(client: AgentClient, order_id: str):
         print(f"[CAP] Processing paid order: {order_id}")
 
         try:
-            payload = json.loads(order.requirements or "{}")
-        except (json.JSONDecodeError, AttributeError):
+            negotiation = await client.get_negotiation(order.negotiation_id)
+            payload = json.loads(negotiation.requirements or "{}")
+        except (json.JSONDecodeError, AttributeError, APIError) as e:
+            print(f"[CAP] Failed to load negotiation requirements for order {order_id}: {e}")
             payload = {}
 
         query = payload.get("query", "").strip()
